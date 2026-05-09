@@ -21,6 +21,7 @@ PatternRefine SHALL 为每个处理成功的 PDF 输出 cleaned SVG debug output
 - **WHEN** 扫描 PDF 处理成功
 - **THEN** 工具写出 `*.cleaned.svg` 文件
 - **AND** SVG 包含用于 PDF export 的 refined vector geometry
+- **AND** SVG 应趋向对象级纸样轮廓表达，而不是扫描噪声、文字碎片或像素级 tracing 集合
 
 ### Requirement: Refined Vector PDF Output
 

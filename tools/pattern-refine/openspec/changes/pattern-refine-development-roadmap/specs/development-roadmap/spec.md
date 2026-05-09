@@ -31,3 +31,10 @@ PatternRefine SHALL 将 OCR-based text 和 arrow reconstruction 视为第一版 
 - **WHEN** 第一版 MVP 定义 scope
 - **THEN** OCR annotation reconstruction 不作为验收必需项
 - **AND** line cleanup、feature preservation 和 vector PDF export 仍是验收重点
+
+#### Scenario: Text layer is planned
+
+- **WHEN** 扫描图中的文字需要进入最终输出
+- **THEN** 文字应先被 OCR 识别为结构化候选
+- **AND** 用户通过确认表单建立标准化文字映射
+- **AND** 最终文字层从确认后的映射重建，而不是从扫描线稿路径直接提取
