@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tool Project Bootstrap"
+  short_description: "Bootstrap personal OpenSpec-driven tool projects."
+  default_prompt: "Create a new personal workflow tool project with Handoff.md, agents.md, OpenSpec changes, docs, and validation scaffolding."

@@ -1,0 +1,19 @@
+{
+  "name": "pattern-refine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BJD pattern cleanup and vector PDF export tool planning workspace.",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "openspec": ".\\node_modules\\.bin\\node.cmd .\\node_modules\\@fission-ai\\openspec\\bin\\openspec.js",
+    "spec:validate": ".\\node_modules\\.bin\\node.cmd .\\node_modules\\@fission-ai\\openspec\\bin\\openspec.js validate --all --strict",
+    "spec:list": ".\\node_modules\\.bin\\node.cmd .\\node_modules\\@fission-ai\\openspec\\bin\\openspec.js list",
+    "node:version": ".\\node_modules\\.bin\\node.cmd --version"
+  },
+  "devDependencies": {
+    "@fission-ai/openspec": "latest",
+    "node": "^20.19.0"
+  }
+}

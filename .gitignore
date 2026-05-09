@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Codex skills backup policy
+.codex/skills/
+!.codex/skill-backups/
+!.codex/skill-backups/**
+
+# External downloaded script collections
+tools/illustrator-scripts-master/
+
+# Generated outputs
+tools/*/examples/output/*
+!tools/*/examples/output/.gitkeep
+
+# Local/editor files
+.idea/
+.vscode/
+*.tmp
+*.bak
+*.log
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
