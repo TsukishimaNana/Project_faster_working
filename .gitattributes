@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+*.ai binary
+*.dxf text eol=lf
+*.pdf binary
+*.png binary
+*.ttf binary
+*.ttc binary
