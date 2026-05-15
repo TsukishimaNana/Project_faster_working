@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "project-agent-routing": {
+      "source": "local/pattern-refine-agent-routing",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/project-agent-routing/SKILL.md",
+      "computedHash": "local-bootstrap"
+    }
+  }
+}

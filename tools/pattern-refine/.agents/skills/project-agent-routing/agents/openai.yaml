@@ -1,0 +1,4 @@
+interface:
+  display_name: PatternRefine Manager
+  short_description: Use when coordinating PatternRefine MVP work, routing subagents, or checking SVG acceptance gates.
+  default_prompt: Use PatternRefine Manager to route work, enforce result ownership, review progress, and keep the MVP aligned to final SVG, piece-wise centerline reconstruction, and per-piece 0.2mm acceptance.

@@ -7,6 +7,15 @@
 - `find-skills`：用于搜索 PDF/OCR 和规划相关 skills。
 - `skill-installer`：用于安装额外 skills。
 
+## 父工作区 OpenSpec Skills
+
+以下 OpenSpec skills 位于父工作区 `D:\my_project\Project_faster_working\.codex\skills\`，PatternRefine 只引用，不复制到本项目：
+
+- `openspec-explore`：用于只读探索 OpenSpec 上下文和现有 change。
+- `openspec-propose`：用于创建或补全 OpenSpec proposal/design/specs/tasks。
+- `openspec-apply-change`：用于按 OpenSpec tasks 推进实现。
+- `openspec-archive-change`：用于完成后归档 OpenSpec change。
+
 ## 候选 PDF/OCR Skills
 
 skill 搜索识别出以下相关候选：
