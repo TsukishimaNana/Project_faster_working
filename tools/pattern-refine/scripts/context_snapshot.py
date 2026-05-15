@@ -14,7 +14,7 @@ HANDOFF = ROOT / "Handoff.md"
 
 
 def main() -> int:
-    print("# PatternRefine Context Snapshot")
+    print("# PatternRefine 上下文摘要")
     print()
     print(f"workdir: {ROOT}")
     print(f"branch: {_git(['branch', '--show-current']) or 'unknown'}")
@@ -29,7 +29,7 @@ def main() -> int:
 def _print_current_slice() -> None:
     if not CURRENT_SLICE.exists():
         return
-    print("## Current Slice")
+    print("## 当前切片")
     lines = CURRENT_SLICE.read_text(encoding="utf-8").splitlines()
     for line in lines[:80]:
         if line.startswith("# "):
@@ -59,14 +59,14 @@ def _print_tasks() -> None:
 
 
 def _print_dirty_summary() -> None:
-    print("## Git Dirty Summary")
+    print("## Git 工作区摘要")
     status = _git(["status", "--short", "--", "."])
     if not status:
         print("clean")
         print()
         return
     lines = status.splitlines()
-    print(f"dirty_entries_in_pattern_refine: {len(lines)}")
+    print(f"pattern_refine_dirty_entries: {len(lines)}")
     for line in lines[:30]:
         print(line)
     if len(lines) > 30:
@@ -77,7 +77,7 @@ def _print_dirty_summary() -> None:
 def _print_recent_validation() -> None:
     if not HANDOFF.exists():
         return
-    print("## Recent Validation")
+    print("## 最近验证")
     text = HANDOFF.read_text(encoding="utf-8")
     match = re.search(r"## 最近验证\n(?P<body>.*?)(?:\n## |\Z)", text, re.S)
     if not match:
