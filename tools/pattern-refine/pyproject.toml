@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pattern-refine"
 version = "0.1.0"
-description = "BJD pattern PDF cleanup, path refinement, and vector PDF export."
+description = "BJD pattern PDF cleanup and reference-guided final SVG reconstruction."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

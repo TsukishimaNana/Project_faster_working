@@ -22,6 +22,21 @@ from pattern_refine.deviation import (
     build_simplification_deviation_report,
     write_simplification_deviation_report,
 )
+from pattern_refine.delivery_overlay import (
+    DeliveryOverlayReport,
+    build_delivery_overlay_report,
+    write_delivery_overlay_report,
+)
+from pattern_refine.difference_report import (
+    ScanVsReferenceGuidedReport,
+    build_scan_vs_reference_guided_report,
+    write_scan_vs_reference_guided_report,
+)
+from pattern_refine.evaluate import (
+    SvgPieceAcceptanceReport,
+    evaluate_svg_piece_acceptance,
+    write_svg_piece_acceptance_report,
+)
 from pattern_refine.export import write_refined_pdf
 from pattern_refine.features import FeatureReport, classify_features, write_feature_report
 from pattern_refine.geometry import GeometryObject, PathGeometry
@@ -29,6 +44,11 @@ from pattern_refine.orientation import (
     PageCoordinateTransform,
     transform_path_geometry,
     transform_path_geometry_to_render,
+)
+from pattern_refine.production_quality import (
+    ProductionQualityReport,
+    evaluate_production_quality,
+    write_production_quality_report,
 )
 from pattern_refine.report import (
     FinalSvgStatusReport,
@@ -78,6 +98,10 @@ class PageRenderResult:
     smoothing_report_path: Path
     semantic_report_path: Path
     final_status_report_path: Path
+    piece_acceptance_report_path: Path
+    production_quality_report_path: Path
+    scan_vs_reference_guided_report_path: Path
+    delivery_overlay_report_path: Path
     page_width_mm: float
     page_height_mm: float
     render_width_mm: float
@@ -97,6 +121,10 @@ class PageRenderResult:
     smoothing_report: SmoothingReport
     semantic_report: SemanticGeometryReport
     final_status_report: FinalSvgStatusReport
+    piece_acceptance_report: SvgPieceAcceptanceReport | None
+    production_quality_report: ProductionQualityReport
+    scan_vs_reference_guided_report: ScanVsReferenceGuidedReport
+    delivery_overlay_report: DeliveryOverlayReport
     deviation_report: SimplificationDeviationReport
     scale_report: ScaleDetectionReport
     centerline_report: CenterlineReport
@@ -144,6 +172,12 @@ def refine_pdf(
     smoothing_report_path = output_dir / f"{stem}.smoothing-report.json"
     semantic_report_path = output_dir / f"{stem}.semantic-report.json"
     final_status_report_path = output_dir / f"{stem}.final-status-report.json"
+    piece_acceptance_report_path = output_dir / f"{stem}.piece-acceptance-report.json"
+    production_quality_report_path = output_dir / f"{stem}.production-quality-report.json"
+    scan_vs_reference_guided_report_path = (
+        output_dir / f"{stem}.scan-vs-reference-guided-report.json"
+    )
+    delivery_overlay_report_path = output_dir / f"{stem}.delivery-overlay-report.json"
     _ensure_can_write(render_path, overwrite=overwrite)
     _ensure_can_write(lines_path, overwrite=overwrite)
     _ensure_can_write(candidate_svg_path, overwrite=overwrite)
@@ -165,6 +199,10 @@ def refine_pdf(
     _ensure_can_write(smoothing_report_path, overwrite=overwrite)
     _ensure_can_write(semantic_report_path, overwrite=overwrite)
     _ensure_can_write(final_status_report_path, overwrite=overwrite)
+    _ensure_can_write(piece_acceptance_report_path, overwrite=overwrite)
+    _ensure_can_write(production_quality_report_path, overwrite=overwrite)
+    _ensure_can_write(scan_vs_reference_guided_report_path, overwrite=overwrite)
+    _ensure_can_write(delivery_overlay_report_path, overwrite=overwrite)
 
     with fitz.open(input_pdf) as document:
         if document.page_count < 1:
@@ -339,13 +377,49 @@ def refine_pdf(
         final_geometries = semantic_geometries
         final_svg_path.write_text(semantic_svg_path.read_text(encoding="utf-8"), encoding="utf-8")
     write_semantic_geometry_report(semantic_report, semantic_report_path)
+    piece_acceptance_report = None
+    if reference_template_path is not None:
+        piece_acceptance_report = evaluate_svg_piece_acceptance(
+            final_svg_path,
+            reference_template_path,
+            page_size_mm=(page_width_mm, page_height_mm),
+        )
+        write_svg_piece_acceptance_report(piece_acceptance_report, piece_acceptance_report_path)
+    production_quality_report = evaluate_production_quality(final_svg_path)
+    write_production_quality_report(production_quality_report, production_quality_report_path)
     final_status_report = build_final_svg_status_report(
         final_svg_path,
         semantic_report,
         final_geometry_source="reference-guided" if reference_guided else None,
         reference_guided=reference_guided,
+        piece_acceptance_report=piece_acceptance_report,
+        piece_acceptance_report_path=(
+            piece_acceptance_report_path if piece_acceptance_report is not None else None
+        ),
+        production_quality_report=production_quality_report,
+        production_quality_report_path=production_quality_report_path,
     )
     write_final_svg_status_report(final_status_report, final_status_report_path)
+    scan_vs_reference_guided_report = build_scan_vs_reference_guided_report(
+        scan_only_layer=centerline_svg_path,
+        final_layer=final_svg_path,
+        final_status_report=final_status_report,
+        piece_acceptance_report=piece_acceptance_report,
+        scan_only_max_deviation_mm=_scan_only_max_deviation_mm(semantic_report),
+    )
+    write_scan_vs_reference_guided_report(
+        scan_vs_reference_guided_report,
+        scan_vs_reference_guided_report_path,
+    )
+    delivery_overlay_report = build_delivery_overlay_report(
+        page_rotation=page_rotation,
+        page_width_mm=page_width_mm,
+        page_height_mm=page_height_mm,
+        final_svg_path=final_svg_path,
+        scale_report_path=scale_report_path,
+        overlay_svg_path=overlay_svg_path,
+    )
+    write_delivery_overlay_report(delivery_overlay_report, delivery_overlay_report_path)
     write_refined_pdf(
         semantic_geometries,
         refined_pdf_path,
@@ -376,6 +450,10 @@ def refine_pdf(
         smoothing_report_path=smoothing_report_path,
         semantic_report_path=semantic_report_path,
         final_status_report_path=final_status_report_path,
+        piece_acceptance_report_path=piece_acceptance_report_path,
+        production_quality_report_path=production_quality_report_path,
+        scan_vs_reference_guided_report_path=scan_vs_reference_guided_report_path,
+        delivery_overlay_report_path=delivery_overlay_report_path,
         page_width_mm=page_width_mm,
         page_height_mm=page_height_mm,
         render_width_mm=render_width_mm,
@@ -395,6 +473,10 @@ def refine_pdf(
         smoothing_report=smoothing_report,
         semantic_report=semantic_report,
         final_status_report=final_status_report,
+        piece_acceptance_report=piece_acceptance_report,
+        production_quality_report=production_quality_report,
+        scan_vs_reference_guided_report=scan_vs_reference_guided_report,
+        delivery_overlay_report=delivery_overlay_report,
         deviation_report=deviation_report,
         scale_report=scale_report,
         centerline_report=centerline_report,
@@ -433,3 +515,12 @@ def _render_page(page: fitz.Page, *, dpi: int) -> np.ndarray:
 def _ensure_can_write(path: Path, *, overwrite: bool) -> None:
     if path.exists() and not overwrite:
         raise FileExistsError(f"Output already exists, pass --overwrite to replace: {path}")
+
+
+def _scan_only_max_deviation_mm(report: SemanticGeometryReport) -> float | None:
+    values = [
+        diagnostic.rejected_distance_summary_mm[2]
+        for diagnostic in report.centerline_piece_diagnostics
+        if diagnostic.rejected_distance_summary_mm is not None
+    ]
+    return max(values, default=None)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from pattern_refine.delivery import format_delivery_verification, verify_delivery
 from pattern_refine.evaluate import (
     evaluate_svg_piece_acceptance,
     evaluate_svg_shape,
@@ -19,6 +20,10 @@ from pattern_refine.compare import (
     write_svg_comparison,
 )
 from pattern_refine.pipeline import refine_pdf
+from pattern_refine.production_quality import (
+    evaluate_production_quality,
+    write_production_quality_report,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -67,6 +72,49 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Replace an existing evaluation report.",
     )
+    verify_delivery_parser = subparsers.add_parser(
+        "verify-delivery",
+        help="Verify final SVG delivery readiness from status and piece acceptance reports.",
+    )
+    verify_delivery_parser.add_argument(
+        "final_svg",
+        type=Path,
+        help="Final SVG customer delivery candidate.",
+    )
+    verify_delivery_parser.add_argument(
+        "--status",
+        type=Path,
+        required=True,
+        help="Final SVG status report JSON.",
+    )
+    verify_delivery_parser.add_argument(
+        "--piece-report",
+        type=Path,
+        required=True,
+        help="Piece acceptance report JSON.",
+    )
+    verify_delivery_parser.add_argument(
+        "--production-quality-report",
+        type=Path,
+        required=True,
+        help="Production cleanliness/topology report JSON.",
+    )
+    production_quality_parser = subparsers.add_parser(
+        "production-quality",
+        help="Evaluate final SVG production cleanliness/topology.",
+    )
+    production_quality_parser.add_argument("input_svg", type=Path, help="Final SVG to inspect.")
+    production_quality_parser.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Directory for the JSON report.",
+    )
+    production_quality_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing production quality report.",
+    )
     return parser
 
 
@@ -106,6 +154,14 @@ def main() -> int:
         print(f"Wrote smoothing report: {result.smoothing_report_path}")
         print(f"Wrote semantic report: {result.semantic_report_path}")
         print(f"Wrote final SVG status report: {result.final_status_report_path}")
+        if result.piece_acceptance_report is not None:
+            print(f"Wrote piece acceptance report: {result.piece_acceptance_report_path}")
+        print(f"Wrote production quality report: {result.production_quality_report_path}")
+        print(
+            "Wrote scan vs reference-guided report: "
+            f"{result.scan_vs_reference_guided_report_path}"
+        )
+        print(f"Wrote delivery overlay report: {result.delivery_overlay_report_path}")
         print(
             "Path geometry count: "
             f"candidate={len(result.candidate_geometries)}, "
@@ -163,6 +219,13 @@ def main() -> int:
             f"(delivery_ready={result.final_status_report.delivery_ready}, "
             f"source={result.final_status_report.final_geometry_source})"
         )
+        if result.piece_acceptance_report is not None:
+            print(
+                "Piece acceptance: "
+                f"{result.piece_acceptance_report.result_state} "
+                f"(max={result.piece_acceptance_report.max_deviation_mm:.3f}mm, "
+                f"tolerance={result.piece_acceptance_report.tolerance_mm:.3f}mm)"
+            )
         print(
             "Deviation check: "
             f"{result.deviation_report.max_deviation_mm:.3f}mm max "
@@ -242,6 +305,26 @@ def main() -> int:
         print(f"Shape verdict: {shape_report.verdict}")
         print(f"Piece acceptance state: {piece_acceptance_report.result_state}")
         return 0
+    if args.command == "verify-delivery":
+        result = verify_delivery(
+            args.final_svg,
+            status_report_path=args.status,
+            piece_report_path=args.piece_report,
+            production_quality_report_path=args.production_quality_report,
+        )
+        print(format_delivery_verification(result))
+        return 0 if result.passed else 1
+    if args.command == "production-quality":
+        report_path = args.out / f"{args.input_svg.stem}.production-quality-report.json"
+        if report_path.exists() and not args.overwrite:
+            raise FileExistsError(f"Output already exists, pass --overwrite to replace: {report_path}")
+        report = evaluate_production_quality(args.input_svg)
+        write_production_quality_report(report, report_path)
+        print(f"Wrote production quality report: {report_path}")
+        print(f"Accepted: {report.accepted}")
+        print(f"Manual review required: {report.manual_review_required}")
+        print(f"Blockers: {list(report.blockers)}")
+        return 0 if report.accepted else 1
     parser.print_help()
     return 0
 

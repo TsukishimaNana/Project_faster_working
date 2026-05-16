@@ -7,34 +7,46 @@
 
 ```text
 请在 `D:\my_project\Project_faster_working\tools\pattern-refine` 中工作。
-修改文件前先读 `Handoff.md`、`CURRENT_SLICE.md`、`agents.md` 和当前 active OpenSpec tasks。
-先汇报路由等级、当前 OpenSpec 阶段、最小任务批次、主要风险，以及是否仍在 reference-guided 路线上。
+先读 `CURRENT_SLICE.md` 和 `agents.md`；只有本轮任务需要历史状态时再读 `Handoff.md`。
+只有要汇报交付验收或修改验收逻辑时再读 `docs/acceptance-contract.md`。
+不要默认读取完整 OpenSpec、长版规则、历史 delivery closure 文档，或长 Python 文件全文。
+读代码前先读 `docs/code-map.md`，再按目标函数读取局部窗口。
+先汇报路由等级、当前路线、最小任务批次和主要风险。
+只做 `CURRENT_SLICE.md` 的本轮任务；文档-only 任务不要运行交付验收。
 子代理只使用压缩派工单，不 fork 完整对话上下文。
 ```
 
-## 最小阅读集
+## 默认上下文
 
-1. `CURRENT_SLICE.md`
-2. `agents.md`
-3. `openspec\changes\pdf-to-refined-vector-pdf-mvp\tasks.md`
-4. `openspec\changes\pdf-to-refined-vector-pdf-mvp\design.md`
+1. 本轮任务切片：`CURRENT_SLICE.md`
+2. 永久硬规则：`agents.md`
+3. 代码定位地图：`docs\code-map.md`，仅在需要读代码时读取
 
-只有短版信息不够时，再读 `docs\handoff-details.md`。
+只有短版信息不够时，再读：
+
+- 当前接手状态：`Handoff.md`
+- 固定验收契约：`docs\acceptance-contract.md`
+- 长版背景：`docs\handoff-details.md`
+- 长版规则：`agent_docs\rules-detail.md`
+- 当前 OpenSpec：`openspec\changes\pdf-to-refined-vector-pdf-mvp\tasks.md`
 
 ## 当前状态
 
-- 当前样本 MVP 路线：reference-guided production reconstruction。
-- 客户交付物是 `*.final.svg`；PDF、debug SVG 和 report 都是内部证据。
-- `pink-dress-simple-reference.svg` 只读加载为 production geometry template。
-- `refine_pdf()` 已为 `pink-dress-original-scan.pdf` 输出 reference-guided `final.svg`。
-- final status report 已包含 `geometry_source=reference-guided`。
-- scan-only centerline 只保留为诊断层；最新已知 scan-only max deviation 约 `2.05mm`。
-- reference-guided final SVG 在测试中的逐裁片验收已通过，max deviation 约 `0.122mm`。
-- pipeline 的 `delivery_ready` 仍需直接消费 piece acceptance 证据后，才能声明 MVP 可交付。
+- 当前样本 MVP 路线已调整为：scan evidence + feature recognition + rule-based production tracing。
+- 旧的 reference-guided `final.svg` 能通过逐裁片几何偏差，但用户已判定它不足以代表生产级 SVG。
+- `max_deviation <= 0.2mm`、piece acceptance 和 `delivery_ready=true` 只能作为几何接近证据，
+  不再足以报告生产级 PASS。
+- 新路线必须先从 `pink-dress-original-scan.pdf` 建立页面归一化和扫描证据层，再识别裁片、
+  直边、曲边、尖角、剪口、短对位标、比例尺和非生产噪声，最后按制版规则生成干净 SVG。
+- `pink-dress-simple-reference.svg` 和 `pink-dress-original-scan-SVG-VS-PDF.pdf` 是当前样本的
+  reference/oracle，用于理解红色生产线如何从扫描黑线抽象出来；不要把它们描述成自动输出已达标。
+- `candidate.svg`、`centerline.svg`、`cleaned.svg`、`semantic.svg`、`refined.pdf` 和 overlay/report
+  仍都是内部证据。
+- 当前 `pink-dress-simple-reference.svg` 的工作区改动已由用户确认保留；不要擅自回滚。
 
 ## 最近验证
 
-- `.\.venv\Scripts\python.exe -m pytest -q` -> `88 passed`
+- `.\.venv\Scripts\python.exe -m pytest -q` -> 最近已知 `91 passed`
 - `.\.venv\Scripts\python.exe -m ruff check .` -> passed
 - `npm run spec:validate` -> 3 changes passed
 
@@ -49,13 +61,13 @@ $env:TMP = $env:TEMP
 
 ## 下一步
 
-1. 将 final SVG piece acceptance 接入 pipeline final-status/report。
-2. 保持 scan render、scale marker、orientation 和 overlay diagnostics 不断链。
-3. 增加 scan-only 与 reference-guided 的差异报告。
-4. 只有 final-status/report 与逐裁片 `0.2mm` 证据一致时，才标记可交付 MVP。
+执行 `CURRENT_SLICE.md` 指向的新方向文档/实现切片。旧 delivery closure task packets 已完成但
+验收口径过窄，不能继续作为生产级完成标准。
 
 ## 上下文控制
 
 - 用 `.\.venv\Scripts\python.exe scripts\context_snapshot.py` 查看短摘要。
 - 不要默认全仓库 broad search。
+- 不要默认全文读取 `src/pattern_refine/pipeline.py`、`src/pattern_refine/evaluate.py`、
+  `src/pattern_refine/semantic.py`；先读 `docs/code-map.md`，再查目标函数局部窗口。
 - 生成物不要进入 Git。

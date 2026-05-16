@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pattern_refine.evaluate import SvgPieceAcceptanceReport
 from pattern_refine.geometry import PathGeometry
+from pattern_refine.production_quality import ProductionQualityReport
 from pattern_refine.semantic import SemanticGeometryReport
 
 
@@ -75,6 +77,13 @@ class FinalSvgStatusReport:
     centerline_piece_candidate_count: int
     centerline_missing_reference_count: int
     blockers: tuple[str, ...]
+    piece_acceptance_accepted: bool | None
+    piece_acceptance_report_path: str | None
+    piece_acceptance_max_deviation_mm: float | None
+    piece_acceptance_tolerance_mm: float | None
+    production_quality_accepted: bool | None
+    production_quality_report_path: str | None
+    production_quality_blockers: tuple[str, ...]
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -89,6 +98,17 @@ class FinalSvgStatusReport:
             "centerline_piece_candidate_count": self.centerline_piece_candidate_count,
             "centerline_missing_reference_count": self.centerline_missing_reference_count,
             "blockers": list(self.blockers),
+            "piece_acceptance": {
+                "accepted": self.piece_acceptance_accepted,
+                "report_path": self.piece_acceptance_report_path,
+                "max_deviation_mm": self.piece_acceptance_max_deviation_mm,
+                "tolerance_mm": self.piece_acceptance_tolerance_mm,
+            },
+            "production_quality": {
+                "accepted": self.production_quality_accepted,
+                "report_path": self.production_quality_report_path,
+                "blockers": list(self.production_quality_blockers),
+            },
         }
 
 
@@ -98,6 +118,10 @@ def build_final_svg_status_report(
     *,
     final_geometry_source: str | None = None,
     reference_guided: bool = False,
+    piece_acceptance_report: SvgPieceAcceptanceReport | None = None,
+    piece_acceptance_report_path: Path | None = None,
+    production_quality_report: ProductionQualityReport | None = None,
+    production_quality_report_path: Path | None = None,
 ) -> FinalSvgStatusReport:
     """Classify the final SVG without treating debug geometry as customer-ready."""
 
@@ -111,11 +135,19 @@ def build_final_svg_status_report(
         and semantic_report.centerline_piece_candidate_count < semantic_report.centerline_reference_path_count
     ):
         blockers.append("not every deferred pattern path has a centerline candidate")
-    blockers.append("reference piece acceptance has not passed in this pipeline step")
+    if piece_acceptance_report is None:
+        blockers.append("reference piece acceptance has not passed in this pipeline step")
+    elif not piece_acceptance_report.accepted:
+        blockers.extend(piece_acceptance_report.blockers)
+    if production_quality_report is None:
+        blockers.append("production cleanliness/topology gate has not run")
+    elif not production_quality_report.accepted:
+        blockers.extend(production_quality_report.blockers)
+    delivery_ready = not blockers
     return FinalSvgStatusReport(
         final_svg_path=str(final_svg_path),
-        result_state="internal-test" if blockers else "requires-reference-acceptance",
-        delivery_ready=False,
+        result_state="deliverable-mvp" if delivery_ready else "internal-test",
+        delivery_ready=delivery_ready,
         final_svg_is_unique_delivery_candidate=True,
         final_geometry_source=final_geometry_source or (
             "semantic-centerline"
@@ -127,6 +159,29 @@ def build_final_svg_status_report(
         centerline_piece_candidate_count=semantic_report.centerline_piece_candidate_count,
         centerline_missing_reference_count=semantic_report.centerline_missing_reference_count,
         blockers=tuple(blockers),
+        piece_acceptance_accepted=(
+            piece_acceptance_report.accepted if piece_acceptance_report is not None else None
+        ),
+        piece_acceptance_report_path=(
+            str(piece_acceptance_report_path) if piece_acceptance_report_path is not None else None
+        ),
+        piece_acceptance_max_deviation_mm=(
+            piece_acceptance_report.max_deviation_mm
+            if piece_acceptance_report is not None
+            else None
+        ),
+        piece_acceptance_tolerance_mm=(
+            piece_acceptance_report.tolerance_mm if piece_acceptance_report is not None else None
+        ),
+        production_quality_accepted=(
+            production_quality_report.accepted if production_quality_report is not None else None
+        ),
+        production_quality_report_path=(
+            str(production_quality_report_path) if production_quality_report_path is not None else None
+        ),
+        production_quality_blockers=(
+            production_quality_report.blockers if production_quality_report is not None else ()
+        ),
     )
 
 

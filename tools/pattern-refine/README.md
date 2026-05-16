@@ -1,26 +1,35 @@
 # PatternRefine
 
-PatternRefine 是一个用于加速 BJD 纸样处理的小工具项目：清理扫描型纸样
-PDF、圆顺线条、保护关键纸样特征，并导出供应商可用的矢量 PDF。
+PatternRefine 是一个用于加速 BJD 纸样处理的小工具项目：读取扫描型纸样
+PDF，先建立页面归一化和扫描证据层，再识别制版特征，用规则化勾线生成干净的
+生产级 SVG。
 
 项目放在 `tools/pattern-refine` 下，方便 `Project_faster_working` 以后继续容纳多个工作加速小工具。
 
 ## MVP 目标
 
-第一版 MVP 聚焦扫描型 BJD 纸样 PDF：
+当前 MVP 聚焦 `pink-dress-original-scan.pdf` 单样本，但路线已从“扫描轮廓矢量化后直接交付”
+调整为“扫描证据 + 特征识别 + 规则勾线”：
 
 1. 将 PDF 页面渲染为高分辨率图片。
-2. 从白底中提取黑色纸样线稿。
-3. 将清理后的线稿矢量化为内部 SVG。
-4. 在保留尖角、剪口、直角、三角标等关键特征的前提下圆顺和简化路径。
-5. 导出矢量 PDF 作为主要交付物。
+2. 归一化页面方向、尺寸、viewBox 和单位，建立稳定扫描证据坐标系。
+3. 从白底中提取黑色纸样线稿，输出 scan evidence/debug 层。
+4. 识别裁片、直边、曲边、尖角、剪口、短对位标、比例尺和非生产噪声。
+5. 按制版规则重建少点数、无重合线、可编辑的生产 SVG。
+6. 用人工 reference 和合格叠图作为规则样本与验收对照，而不是把扫描轮廓本身当 final。
 
-SVG 是中间格式和调试格式，不是最终产品边界。
+`pink-dress-simple-reference.svg` 和 `pink-dress-original-scan-SVG-VS-PDF.pdf` 是当前样本的
+reference/oracle：它们说明“红色生产线如何从扫描黑线中抽象出来”。扫描提取层只能作为证据，
+不能直接升级为生产级 final SVG。
 
 ## 输出
 
-- `*.cleaned.svg`：内部/调试用矢量表示。
-- `*.refined.pdf`：MVP 主要输出，用于供应商查看和交付。
+- `*.final.svg`：生产级 SVG 候选；必须通过 topology/cleanliness gate 后才能称为可交付。
+- `*.piece-acceptance-report.json`：逐裁片几何偏差报告，只能证明接近 reference，不能单独证明生产级。
+- `*.final-status-report.json`：最终交付状态，必须同时消费几何验收和生产级 cleanliness/topology 证据。
+- `*.candidate.svg` / `*.centerline.svg` / `*.cleaned.svg` / `*.semantic.svg`：扫描证据或诊断层，不能当客户交付物。
+- `*.scan-evidence.svg` / `*.feature-report.json`：后续用于表达黑线证据和识别出的制版特征。
+- `*.refined.pdf`：内部 vector export 链路检查产物。
 - 后续输出：用于激光流程的 DXF 和 PLT。
 - 不进入 MVP：Adobe Illustrator `.ai` 导出。
 
@@ -28,7 +37,8 @@ SVG 是中间格式和调试格式，不是最终产品边界。
 
 ### Python
 
-Python 负责 PDF 渲染、图像清理、矢量处理和 PDF 导出。包入口为：
+Python 负责 PDF 渲染、页面归一化、扫描证据提取、特征识别、规则化 SVG 重建和内部 PDF
+导出。包入口为：
 
 ```powershell
 pattern-refine
@@ -62,7 +72,10 @@ npm scripts 会显式通过本地 `node` dev dependency 运行 OpenSpec。
 
 ## 开发说明
 
-第一个实现里程碑故意收窄范围：证明一个扫描型 PDF 可以变成更圆顺的矢量 PDF，且不会破坏关键纸样特征。
+第一个实现里程碑故意收窄范围：证明当前粉裙扫描 PDF 可以稳定生成页面归一化扫描证据层，
+并从中识别足够的制版特征，生成接近 `pink-dress-simple-reference.svg` 风格的干净勾线草稿。
+逐裁片 `0.2mm` 几何偏差只能作为辅助指标；生产交付必须增加无重合线、无双边线、拓扑连续、
+对象语义清晰和少点数可编辑性验收。
 OCR、DXF/PLT 导出和 Illustrator 自动化都是后续扩展。
 
 基础验证命令：

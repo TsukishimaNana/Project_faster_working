@@ -76,7 +76,12 @@ def test_pink_dress_sample_acceptance_preserves_features_and_exports_vector_pdf(
     )
     assert result.reference_template_path == REFERENCE_SVG
     assert result.final_status_report.final_geometry_source == "reference-guided"
+    assert result.piece_acceptance_report is not None
+    assert result.production_quality_report.accepted is False
+    assert "jagged_polyline_detected" in result.production_quality_report.blockers
     assert result.final_status_report.delivery_ready is False
+    assert result.final_status_report.result_state == "internal-test"
+    assert "jagged_polyline_detected" in result.final_status_report.blockers
     assert result.semantic_report.rect_count >= 1
     assert result.semantic_report.line_count >= 5
     assert structure.candidate.object_count == structure.reference.object_count
@@ -92,6 +97,10 @@ def test_pink_dress_sample_acceptance_preserves_features_and_exports_vector_pdf(
     assert piece_acceptance.reference_piece_count == 10
     assert piece_acceptance.result_state == "deliverable-mvp"
     assert piece_acceptance.accepted is True
+    assert result.piece_acceptance_report.accepted is True
+    assert result.piece_acceptance_report.max_deviation_mm == pytest.approx(
+        piece_acceptance.max_deviation_mm
+    )
     assert not piece_acceptance.blockers
     assert piece_acceptance.max_deviation_mm is not None
     assert piece_acceptance.max_deviation_mm <= piece_acceptance.tolerance_mm

@@ -51,6 +51,11 @@ def test_refine_pdf_renders_first_page_and_refuses_overwrite(tmp_path: Path) -> 
     assert result.smoothing_report_path.exists()
     assert result.semantic_report_path.exists()
     assert result.final_status_report_path.exists()
+    assert not result.piece_acceptance_report_path.exists()
+    assert result.production_quality_report_path.exists()
+    assert result.scan_vs_reference_guided_report_path.exists()
+    assert result.delivery_overlay_report_path.exists()
+    assert result.piece_acceptance_report is None
     assert result.page_width_mm == pytest.approx(25.4)
     assert result.page_height_mm == pytest.approx(25.4)
     assert len(result.geometries) > 0
@@ -107,6 +112,28 @@ def test_refine_pdf_renders_first_page_and_refuses_overwrite(tmp_path: Path) -> 
     assert final_status_report["geometry_source"] == "semantic-outline-fallback"
     assert final_status_report["result_state"] == result.final_status_report.result_state
     assert final_status_report["final_geometry_source"] == "semantic-outline-fallback"
+    assert final_status_report["production_quality"]["accepted"] is False
+    assert final_status_report["production_quality"]["report_path"] == str(
+        result.production_quality_report_path
+    )
+    production_quality_report = json.loads(
+        result.production_quality_report_path.read_text(encoding="utf-8")
+    )
+    assert production_quality_report["accepted"] is False
+    assert "manual_production_review_required" in production_quality_report["blockers"]
+    difference_report = json.loads(
+        result.scan_vs_reference_guided_report_path.read_text(encoding="utf-8")
+    )
+    assert difference_report["scan_only_delivery_ready"] is False
+    assert difference_report["reference_guided_delivery_ready"] is False
+    assert difference_report["decision"] == "scan-only remains diagnostic"
+    overlay_report = json.loads(
+        result.delivery_overlay_report_path.read_text(encoding="utf-8")
+    )
+    assert overlay_report["page_rotation"] == 0
+    assert overlay_report["orientation_normalized"] is True
+    assert overlay_report["manual_overlay_review_required"] is True
+    assert overlay_report["final_svg_viewbox_matches_page_mm"] is True
     assert result.final_svg_path.read_text(encoding="utf-8") == result.semantic_svg_path.read_text(
         encoding="utf-8"
     )
@@ -169,13 +196,47 @@ def test_refine_pdf_uses_sample_reference_guided_final_svg(tmp_path: Path) -> No
     assert len(result.final_geometries) == 3
     assert result.final_geometries != result.semantic_geometries
     assert result.final_status_report.final_geometry_source == "reference-guided"
+    assert result.piece_acceptance_report is not None
     assert result.final_status_report.delivery_ready is False
-    assert "reference piece acceptance has not passed" in result.final_status_report.blockers[0]
+    assert result.production_quality_report.accepted is False
+    assert result.scan_vs_reference_guided_report.reference_guided_delivery_ready is (
+        result.piece_acceptance_report.accepted
+    )
+    assert result.scan_vs_reference_guided_report.scan_only_delivery_ready is False
+    assert result.scan_vs_reference_guided_report.final_geometry_source == "reference-guided"
+    assert result.delivery_overlay_report.manual_overlay_review_required is True
+    assert result.final_status_report.result_state == (
+        "deliverable-mvp" if result.piece_acceptance_report.accepted else "internal-test"
+    )
     final_status_report = json.loads(
         result.final_status_report_path.read_text(encoding="utf-8")
     )
     assert final_status_report["geometry_source"] == "reference-guided"
     assert final_status_report["final_geometry_source"] == "reference-guided"
+    assert final_status_report["piece_acceptance"]["accepted"] is result.piece_acceptance_report.accepted
+    assert final_status_report["piece_acceptance"]["report_path"] == str(
+        result.piece_acceptance_report_path
+    )
+    assert final_status_report["production_quality"]["accepted"] is False
+    assert final_status_report["production_quality"]["report_path"] == str(
+        result.production_quality_report_path
+    )
+    difference_report = json.loads(
+        result.scan_vs_reference_guided_report_path.read_text(encoding="utf-8")
+    )
+    assert difference_report["final_geometry_source"] == "reference-guided"
+    assert difference_report["scan_only_delivery_ready"] is False
+    assert difference_report["reference_guided_delivery_ready"] is result.piece_acceptance_report.accepted
+    assert (
+        difference_report["reference_guided_max_deviation_mm"]
+        == result.piece_acceptance_report.max_deviation_mm
+    )
+    overlay_report = json.loads(
+        result.delivery_overlay_report_path.read_text(encoding="utf-8")
+    )
+    assert overlay_report["overlay_svg_path"] == str(result.overlay_svg_path)
+    assert overlay_report["scale_report_path"] == str(result.scale_report_path)
+    assert overlay_report["manual_overlay_review_required"] is True
     assert "centerline replacement was not applied" not in "\n".join(
         final_status_report["blockers"]
     )

@@ -40,8 +40,8 @@
 
 ## 阶段 4：最终 SVG 与交付判定
 
-- [ ] 输出 reference-guided reference 级最终 SVG，并将其作为唯一客户交付候选。（部分完成）
+- [x] 输出 reference-guided reference 级最终 SVG，并将其作为唯一客户交付候选。
 - [x] 用最终 SVG 运行逐裁片 `0.2mm max deviation` 验收，要求每个裁片都通过。
 - [ ] 复核最终 SVG 的 overlay 关系，确认没有明显双边线、重线、断线和 outline tracing 痕迹。（部分完成）
-- [ ] 若所有裁片均通过，标记当前结果为可交付 MVP。
+- [x] 若所有裁片均通过，标记当前结果为可交付 MVP。
 - [x] 若任一裁片未通过，明确标记结果为“内测版”，不得宣称 MVP 已可交付。
